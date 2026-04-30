@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Black Hole Data Recovery</title>
+    <style>
+        :root {
+            /* 1. PASTE YOUR GOOGLE DRIVE ID HERE */
+            --drive-id: '1cAqIW9RCvqV-sJqZFY3u-JgtvMCe2Siv';
+            
+            /* 2. EXACT MATH FOR 2816 x 1536 IMAGE */
+            --total-strips: 16;
+            --original-width: 2816px;
+            --original-height: 1536px;
+            
+            /* Display size (Scaled down to fit screen) */
+            --display-width: 1120px; 
+            --strip-width: 70px;     /* 1120 / 16 = 70 */
+            --strip-height: 600px; 
+        }
+
+        body { 
+            background: #050505; 
+            color: #e0e0e0; 
+            font-family: 'Courier New', monospace; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            min-height: 100vh; 
+            margin: 0; 
+        }
+
+        #puzzle-container { 
+            display: flex; 
+            gap: 2px; 
+            padding: 10px; 
+            background: #111; 
+            border: 2px solid #222; 
+            border-radius: 4px;
+            box-shadow: 0 0 50px rgba(0,0,0,1);
+        }
+
+        .strip { 
+            width: var(--strip-width); 
+            height: var(--strip-height); 
+            background-repeat: no-repeat;
+            /* This scales the 2816px image down to our 1120px display width */
+            background-size: var(--display-width) var(--strip-height);
+            cursor: grab;
+            border: 1px solid rgba(255,255,255,0.05);
+            box-sizing: border-box;
+            transition: border 0.3s;
+        }
+
+        .dragging { opacity: 0.2; }
+        #message { 
+            margin-top: 30px; 
+            padding: 20px; 
+            border: 2px solid #00ff00; 
+            color: #00ff00; 
+            display: none; 
+            background: rgba(0, 255, 0, 0.1); 
+            font-size: 1.2rem;
+        }
+    </style>
+</head>
+<body>
+
+    <h2 style="color:#666; letter-spacing:3px;">TERMINAL: SPAGHETTIFICATION DETECTED</h2>
+    <p style="color:#444;">Realign the 16 tidal-stretched data strands.</p>
+
+    <div id="puzzle-container"></div>
+    <div id="message">√ STABILITY REACHED: ACCESS CODE 5920</div>
+
+    <script>
+        // Use the same ID here
+        const driveID = '1cAqIW9RCvqV-sJqZFY3u-JgtvMCe2Siv'; 
+        const totalStrips = 16; 
+        const stripWidth = 70; // Matches CSS --strip-width
+        const container = document.getElementById('puzzle-container');
+        
+        // Robust Google Thumbnail URL (sz=w1500 ensures high enough resolution)
+        const imgFullUrl = `https://drive.google.com/thumbnail?authuser=0&sz=w1500&id=${driveID}`;
+
+        let stripsData = Array.from({length: totalStrips}, (_, i) => i);
+        stripsData.sort(() => Math.random() - 0.5);
+
+        stripsData.forEach(i => {
+            const div = document.createElement('div');
+            div.className = 'strip';
+            div.draggable = true;
+            div.dataset.order = i;
+            div.style.backgroundImage = `url('${imgFullUrl}')`;
+            div.style.backgroundPosition = `-${i * stripWidth}px 0px`;
+            container.appendChild(div);
+        });
+
+        let draggedItem = null;
+        container.addEventListener('dragstart', (e) => { draggedItem = e.target; e.target.classList.add('dragging'); });
+        container.addEventListener('dragend', (e) => { 
+            e.target.classList.remove('dragging'); 
+            checkNeighborhood(); 
+            checkWin(); 
+        });
+
+        container.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            const after = getDragAfterElement(container, e.clientX);
+            if (after == null) { container.appendChild(draggedItem); } 
+            else { container.insertBefore(draggedItem, after); }
+        });
+
+        function getDragAfterElement(container, x) {
+            const draggableElements = [...container.querySelectorAll('.strip:not(.dragging)')];
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = x - box.left - box.width / 2;
+                if (offset < 0 && offset > closest.offset) { return { offset: offset, element: child }; } 
+                else { return closest; }
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+        }
+
+        function checkNeighborhood() {
+            const strips = [...container.querySelectorAll('.strip')];
+            strips.forEach((strip, index) => {
+                const currentVal = parseInt(strip.dataset.order);
+                const prev = strips[index - 1];
+                const next = strips[index + 1];
+                strip.style.borderColor = "rgba(255,255,255,0.05)";
+                
+                if (prev && parseInt(prev.dataset.order) === currentVal - 1) strip.style.borderLeft = "2px solid #00ff00";
+                if (next && parseInt(next.dataset.order) === currentVal + 1) strip.style.borderRight = "2px solid #00ff00";
+            });
+        }
+
+        function checkWin() {
+            const currentOrder = [...container.querySelectorAll('.strip')].map(s => s.dataset.order).join(',');
+            const winningOrder = Array.from({length: totalStrips}, (_, i) => i).join(',');
+            if (currentOrder === winningOrder) {
+                document.getElementById('message').style.display = 'block';
+                container.style.pointerEvents = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
